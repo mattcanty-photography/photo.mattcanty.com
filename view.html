@@ -14,7 +14,7 @@
     {{ range $p := .Portfolios }}
     <h3>{{ $p.Title }}</h3>
     <p>{{ $p.Description }}</p>
-    <img src="{{ $p.ThumbnailSource }}" alt="{{ $p.AlternativeText }}" />
+    <img src="data:image/png;base64,{{ $p.Base64Image }}" alt="{{ $p.AlternativeText }}" />
     {{ end }}
 </main>
 
