@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/jfyne/live"
 )
@@ -40,7 +42,7 @@ func main() {
 
 	http.Handle("/", h)
 	http.Handle("/live.js", live.Javascript{})
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(fmt.Sprintf(":%s", os.Getenv("PORT")), nil)
 }
 
 func newHomePageInstance(s *live.Socket) *homePageInstance {
