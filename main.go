@@ -22,7 +22,7 @@ type homePageInstance struct {
 }
 
 func main() {
-	t, err := template.ParseFiles("root.html", "home/view.html")
+	t, err := template.ParseFiles("root.html", "view.html")
 	if err != nil {
 		log.Fatal(err)
 	}
