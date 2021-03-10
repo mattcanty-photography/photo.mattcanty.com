@@ -1,133 +1,22 @@
 {{ define "breadcrumbs" }}
 
-<li class="breadcrumb-item"><a href="/dev-3918bed">Home</a></li>
-<li class="breadcrumb-item"><a href="/dev-3918bed/portfolio/1">BPCG</a></li>
+<li class="breadcrumb-item"><a href="/">Home</a></li>
+<li class="breadcrumb-item"><a href="/portfolio/1">BPCG</a></li>
 <li class="breadcrumb-item active" aria-current="page">Friday, March 5th 2021</li>
 
 {{ end }}
 
 {{ define "view" }}
-<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-2 g-lg-1" data-masonry='{"percentPosition": true }'>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/blossom.jpg" />
+
+<div class="row grid" data-masonry='{"percentPosition": true }'>
+    {{range .Photos}}
+    <div class="col-sm-6 col-lg-4 mb-4">
+        <a href="/portfolio/{{.Album.PortfolioID}}/album/{{.Album.ID}}/photo/{{.ID}}">
+            <img class="img-fluid"
+                src="https://d1u5q1afdbuxt7.cloudfront.net/portfolios/{{.Album.PortfolioID}}/albums/{{.Album.ID}}/thumbs/{{.ID}}" />
         </a>
     </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/flower.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/flowers.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/shoots.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/blossom.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/flower.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/flowers.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/shoots.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/blossom.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/flower.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/flowers.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/shoots.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/blossom.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/flower.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/flowers.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/shoots.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/blossom.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/flower.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/flowers.jpg" />
-        </a>
-    </div>
-    <div class="col">
-        <a href="/dev-3918bed/photo/1">
-            <img class="img-fluid img-thumbnail"
-                src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/shoots.jpg" />
-        </a>
-    </div>
+    {{end}}
 </div>
 
 {{ end }}

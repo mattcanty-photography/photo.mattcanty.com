@@ -1,11 +1,12 @@
 {{ define "breadcrumbs" }}
 
-<li class="breadcrumb-item"><a href="/dev-3918bed/">Home</a></li>
+<li class="breadcrumb-item"><a href="/">Home</a></li>
 <li class="breadcrumb-item active" aria-current="page">BPCG</li>
 
 {{ end }}
 
 {{ define "view" }}
+
 <section class="py-5 text-center container">
     <div class="row py-lg-5">
         <div class="col-lg-6 col-md-8 mx-auto">
@@ -19,55 +20,19 @@
 <div class="album py-5">
     <div class="container">
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+            {{range .Albums}}
             <div class="col">
                 <div class="card shadow-sm">
-                    <img src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/flowers.jpg"
-                        class="w-100" alt="...">
+                    <img src="https://d1u5q1afdbuxt7.cloudfront.net/flowers.jpg" class="w-100" alt="...">
                     <div class="card-body">
-                        <h4>Friday 26th February 2021</h4>
-                        <p class="card-text">This is a wider card with supporting text below as a natural
-                            lead-in to additional content. This content is a little bit longer.</p>
-                        <a href="/dev-3918bed/album/1" class="btn btn-md btn-outline-secondary stretched-link">View</a>
+                        <h4>{{.ID}}</h4>
+                        <p class="card-text"></p>
+                        <a href="/portfolio/{{.PortfolioID}}/album/{{.ID}}"
+                            class="btn btn-md btn-outline-secondary stretched-link">View</a>
                     </div>
                 </div>
             </div>
-            <div class="col">
-                <div class="card shadow-sm">
-                    <img src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/flower.jpg"
-                        class="w-100" alt="...">
-                    <div class="card-body">
-                        <h4>Friday 26th February 2021</h4>
-                        <p class="card-text">This is a wider card with supporting text below as a natural
-                            lead-in to additional content. This content is a little bit longer.</p>
-                        <a href="/dev-3918bed/album/1" class="btn btn-md btn-outline-secondary stretched-link">View</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card shadow-sm">
-                    <img src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/shoots.jpg"
-                        class="w-100" alt="...">
-                    <div class="card-body">
-                        <h4>Friday 26th February 2021</h4>
-                        <p class="card-text">This is a wider card with supporting text below as a natural
-                            lead-in to additional content. This content is a little bit longer.</p>
-                        <a href="/dev-3918bed/album/1" class="btn btn-md btn-outline-secondary stretched-link">View</a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col">
-                <div class="card shadow-sm">
-                    <img src="https://photo-mattcanty-com-dev-photos-4681677.s3.eu-west-2.amazonaws.com/blossom.jpg"
-                        class="w-100" alt="...">
-                    <div class="card-body">
-                        <h4>Friday 26th February 2021</h4>
-                        <p class="card-text">This is a wider card with supporting text below as a natural
-                            lead-in to additional content. This content is a little bit longer.</p>
-                        <a href="/dev-3918bed/album/1" class="btn btn-md btn-outline-secondary stretched-link">View</a>
-                    </div>
-                </div>
-            </div>
+            {{end}}
         </div>
     </div>
 </div>

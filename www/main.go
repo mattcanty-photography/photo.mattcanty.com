@@ -1,9 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
-	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -13,78 +10,57 @@ import (
 )
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") == "" {
-		log.Fatal(http.ListenAndServe(":3000", routing("")))
+		log.Fatal(http.ListenAndServe(":3000", routing()))
 	} else {
-		log.Fatal(gateway.ListenAndServe(":3000", routing("/dev-3918bed")))
+		log.Fatal(gateway.ListenAndServe(":3000", routing()))
 	}
-}
-
-func routing(apiStage string) http.Handler {
-
-	r := chi.NewRouter()
-
-	r.HandleFunc(fmt.Sprintf("%s/", apiStage), getHome)
-	r.HandleFunc(fmt.Sprintf("%s/portfolio/{id}", apiStage), getPortfolio)
-	r.HandleFunc(fmt.Sprintf("%s/album/{id}", apiStage), getAlbum)
-	r.HandleFunc(fmt.Sprintf("%s/photo/{id}", apiStage), getPhoto)
-
-	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf("Not found: [%s]", r.RequestURI)))
-	})
-
-	return r
 }
 
 func getHome(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("root.html", "home.html")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var b bytes.Buffer
-	err = t.Execute(&b, nil)
-
-	w.Header().Add("Content-Type", "text/html")
-	fmt.Fprint(w, b.String())
+	htmlRespond(w, "home.html", nil)
 }
 
 func getPortfolio(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("root.html", "portfolio.html")
-	if err != nil {
-		log.Fatal(err)
+	portfolioID := chi.URLParam(r, "portfolioID")
+
+	viewData := struct {
+		portfolioID string
+		Albums      []album
+	}{
+		portfolioID: portfolioID,
+		Albums:      getAlbums(portfolioID),
 	}
 
-	var b bytes.Buffer
-	err = t.Execute(&b, nil)
-
-	w.Header().Add("Content-Type", "text/html")
-	fmt.Fprint(w, b.String())
+	htmlRespond(w, "portfolio.html", viewData)
 }
 
 func getAlbum(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("root.html", "album.html")
-	if err != nil {
-		log.Fatal(err)
+	viewData := struct {
+		Photos []photo
+	}{
+		Photos: getPhotos(chi.URLParam(r, "portfolioID"), chi.URLParam(r, "albumID")),
 	}
 
-	var b bytes.Buffer
-	err = t.Execute(&b, nil)
-
-	w.Header().Add("Content-Type", "text/html")
-	fmt.Fprint(w, b.String())
+	htmlRespond(w, "album.html", viewData)
 }
 
 func getPhoto(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("root.html", "photo.html")
-	if err != nil {
-		log.Fatal(err)
+	viewData := struct {
+		PortfolioID string
+		AlbumID     string
+		PhotoID     string
+	}{
+		PortfolioID: chi.URLParam(r, "portfolioID"),
+		AlbumID:     chi.URLParam(r, "albumID"),
+		PhotoID:     chi.URLParam(r, "photoID"),
 	}
 
-	var b bytes.Buffer
-	err = t.Execute(&b, nil)
+	htmlRespond(w, "photo.html", viewData)
+}
 
-	w.Header().Add("Content-Type", "text/html")
-	fmt.Fprint(w, b.String())
+func notFound(w http.ResponseWriter, r *http.Request) {
+	htmlRespond(w, "404.html", nil)
 }
