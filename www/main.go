@@ -27,9 +27,13 @@ func getPortfolio(w http.ResponseWriter, r *http.Request) {
 	portfolioID := chi.URLParam(r, "portfolioID")
 
 	viewData := struct {
+		Breadcrumbs breadcrumbs
 		portfolioID string
 		Albums      []album
 	}{
+		Breadcrumbs: breadcrumbs{
+			Portfolio: portfolioID,
+		},
 		portfolioID: portfolioID,
 		Albums:      getAlbums(portfolioID),
 	}
@@ -38,24 +42,42 @@ func getPortfolio(w http.ResponseWriter, r *http.Request) {
 }
 
 func getAlbum(w http.ResponseWriter, r *http.Request) {
+	portfolioID := chi.URLParam(r, "portfolioID")
+	albumID := chi.URLParam(r, "albumID")
+
 	viewData := struct {
-		Photos []photo
+		Breadcrumbs breadcrumbs
+		Photos      []photo
 	}{
-		Photos: getPhotos(chi.URLParam(r, "portfolioID"), chi.URLParam(r, "albumID")),
+		Breadcrumbs: breadcrumbs{
+			Portfolio: portfolioID,
+			Album:     albumID,
+		},
+		Photos: getPhotos(portfolioID, albumID),
 	}
 
 	htmlRespond(w, "album.html", viewData)
 }
 
 func getPhoto(w http.ResponseWriter, r *http.Request) {
+	portfolioID := chi.URLParam(r, "portfolioID")
+	albumID := chi.URLParam(r, "albumID")
+	photoID := chi.URLParam(r, "photoID")
+
 	viewData := struct {
+		Breadcrumbs breadcrumbs
 		PortfolioID string
 		AlbumID     string
 		PhotoID     string
 	}{
-		PortfolioID: chi.URLParam(r, "portfolioID"),
-		AlbumID:     chi.URLParam(r, "albumID"),
-		PhotoID:     chi.URLParam(r, "photoID"),
+		Breadcrumbs: breadcrumbs{
+			Portfolio: portfolioID,
+			Album:     albumID,
+			Photo:     photoID,
+		},
+		PortfolioID: portfolioID,
+		AlbumID:     albumID,
+		PhotoID:     photoID,
 	}
 
 	htmlRespond(w, "photo.html", viewData)

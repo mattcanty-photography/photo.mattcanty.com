@@ -8,8 +8,14 @@ import (
 	"net/http"
 )
 
+type breadcrumbs struct {
+	Portfolio string
+	Album     string
+	Photo     string
+}
+
 func htmlRespond(w http.ResponseWriter, viewTemplateName string, data interface{}) {
-	t, err := template.ParseFiles("root.html", viewTemplateName)
+	t, err := template.ParseFiles("root.html", "breadcrumbs.html", viewTemplateName)
 	if err != nil {
 		log.Fatal(err)
 	}

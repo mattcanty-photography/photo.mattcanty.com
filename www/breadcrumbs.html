@@ -1,0 +1,54 @@
+{{ define "breadcrumbs" }}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        {{ if .Breadcrumbs.Portfolio }}
+        <li class="breadcrumb-item">
+            <a href="/">
+                Home
+            </a>
+        </li>
+        {{ else }}
+        <li class="breadcrumb-item active" aria-current="page">
+            Home
+        </li>
+        {{ end }}
+
+        {{ if .Breadcrumbs.Portfolio }}
+        {{ if .Breadcrumbs.Album }}
+        <li class="breadcrumb-item">
+            <a href="/portfolio/{{ .Breadcrumbs.Portfolio }}">
+                {{ .Breadcrumbs.Portfolio }}
+            </a>
+        </li>
+        {{ else }}
+        <li class="breadcrumb-item active" aria-current="page">
+            {{ .Breadcrumbs.Portfolio }}
+        </li>
+        {{ end }}
+        {{ end }}
+
+        {{ if .Breadcrumbs.Album }}
+        {{ if .Breadcrumbs.Photo }}
+        <li class="breadcrumb-item">
+            <a href="/portfolio/{{ .Breadcrumbs.Portfolio }}/album/{{ .Breadcrumbs.Album }}">
+                {{ .Breadcrumbs.Album }}
+            </a>
+        </li>
+        {{ else }}
+        <li class="breadcrumb-item active" aria-current="page">
+            {{ .Breadcrumbs.Album }}
+        </li>
+        {{ end }}
+        {{ end }}
+
+        {{ if .Breadcrumbs.Photo }}
+        <li class="breadcrumb-item active" aria-current="page">
+            {{ .Breadcrumbs.Photo }}
+        </li>
+        {{ end }}
+
+    </ol>
+</nav>
+
+{{ end }}

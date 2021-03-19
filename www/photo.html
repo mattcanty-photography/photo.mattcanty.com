@@ -1,17 +1,8 @@
-{{ define "breadcrumbs" }}
-
-<li class="breadcrumb-item"><a href="/">Home</a></li>
-<li class="breadcrumb-item"><a href="/portfolio/1">BPCG</a></li>
-<li class="breadcrumb-item"><a href="/album/1">Friday, March 5th 2021</a></li>
-<li class="breadcrumb-item active" aria-current="page">blossom.jpg</li>
-
-{{ end }}
-
 {{ define "view" }}
 
 <div class="row">
     <div class="col">
-        <img class="img-fluid"
+        <img class="img-fluid mx-auto d-block"
             src="https://d1u5q1afdbuxt7.cloudfront.net/portfolios/{{.PortfolioID}}/albums/{{.AlbumID}}/thumbs/{{.PhotoID}}" />
     </div>
 </div>
