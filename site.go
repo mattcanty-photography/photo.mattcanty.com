@@ -11,7 +11,9 @@ import (
 	"github.com/pulumi/pulumi/sdk/v2/go/pulumi"
 )
 
-func createSiteResources(ctx *pulumi.Context, bucketName pulumi.StringOutput) error {
+func createSiteResources(
+	ctx *pulumi.Context,
+	bucketName pulumi.StringOutput) (pulumi.StringOutput, pulumi.StringOutput, error) {
 	var doc assumeRolePolicyDocument
 	doc.Version = "2012-10-17"
 	doc.Statement = []assumeRolePolicyStatmentEntry{
@@ -27,7 +29,7 @@ func createSiteResources(ctx *pulumi.Context, bucketName pulumi.StringOutput) er
 
 	assumeRolePolicy, err := json.Marshal(&doc)
 	if err != nil {
-		return err
+		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
 	}
 
 	lambdaRole, err := iam.NewRole(
@@ -38,7 +40,7 @@ func createSiteResources(ctx *pulumi.Context, bucketName pulumi.StringOutput) er
 		},
 	)
 	if err != nil {
-		return err
+		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
 	}
 
 	policyTmp := bucketName.ApplyString(func(bucketID string) (string, error) {
@@ -98,17 +100,25 @@ func createSiteResources(ctx *pulumi.Context, bucketName pulumi.StringOutput) er
 		},
 	)
 	if err != nil {
-		return err
+		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
 	}
+
+	websiteVersion := "v0.0.7"
+
+	remoteArchive := fmt.Sprintf(
+		"https://github.com/mattcanty-photography/website/releases/download/%s/website_%s_linux_amd64.zip",
+		websiteVersion,
+		websiteVersion,
+	)
 
 	function, err := lambda.NewFunction(
 		ctx,
 		awsNamePrintf(ctx, "%s", "site"),
 		&lambda.FunctionArgs{
-			Handler: pulumi.String("www"),
+			Handler: pulumi.String("handler"),
 			Role:    lambdaRole.Arn,
 			Runtime: pulumi.String("go1.x"),
-			Code:    pulumi.NewFileArchive("../www/.build/www.zip"),
+			Code:    pulumi.NewRemoteArchive(remoteArchive),
 			TracingConfig: lambda.FunctionTracingConfigArgs{
 				Mode: pulumi.String("Active"),
 			},
@@ -122,7 +132,7 @@ func createSiteResources(ctx *pulumi.Context, bucketName pulumi.StringOutput) er
 		pulumi.DependsOn([]pulumi.Resource{lambdaRolePolicy}),
 	)
 	if err != nil {
-		return err
+		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
 	}
 
 	api, err := apigatewayv2.NewApi(
@@ -133,7 +143,7 @@ func createSiteResources(ctx *pulumi.Context, bucketName pulumi.StringOutput) er
 		},
 	)
 	if err != nil {
-		return err
+		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
 	}
 
 	integration, err := apigatewayv2.NewIntegration(
@@ -149,7 +159,7 @@ func createSiteResources(ctx *pulumi.Context, bucketName pulumi.StringOutput) er
 		},
 	)
 	if err != nil {
-		return err
+		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
 	}
 
 	defaultRoute, err := apigatewayv2.NewRoute(
@@ -162,17 +172,17 @@ func createSiteResources(ctx *pulumi.Context, bucketName pulumi.StringOutput) er
 		},
 	)
 	if err != nil {
-		return err
+		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
 	}
 
 	region, err := aws.GetRegion(ctx, nil, nil)
 	if err != nil {
-		return err
+		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
 	}
 
 	current, err := aws.GetCallerIdentity(ctx, nil, nil)
 	if err != nil {
-		return err
+		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
 	}
 
 	_, err = lambda.NewPermission(
@@ -187,10 +197,11 @@ func createSiteResources(ctx *pulumi.Context, bucketName pulumi.StringOutput) er
 				region.Name,
 				current.AccountId,
 				api.ID(),
-				defaultRoute.RouteKey),
+				defaultRoute.RouteKey,
+			),
 		}, pulumi.DependsOn([]pulumi.Resource{api, function}))
 	if err != nil {
-		return err
+		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
 	}
 
 	stage, err := apigatewayv2.NewStage(ctx, ctx.Stack(), &apigatewayv2.StageArgs{
@@ -198,42 +209,14 @@ func createSiteResources(ctx *pulumi.Context, bucketName pulumi.StringOutput) er
 		AutoDeploy: pulumi.Bool(true),
 	})
 	if err != nil {
-		return err
+		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
 	}
 
-	_, err = apigatewayv2.NewDomainName(
-		ctx,
-		awsNamePrintf(ctx, "%s", "site"),
-		&apigatewayv2.DomainNameArgs{
-			DomainName: pulumi.String("photo.mattcanty.com"),
-
-			DomainNameConfiguration: apigatewayv2.DomainNameDomainNameConfigurationArgs{
-				CertificateArn: pulumi.Sprintf(
-					"arn:aws:acm:%s:%s:certificate/315231a3-2b2e-4090-9d40-b63e7f710efa",
-					region.Name,
-					current.AccountId,
-				),
-				EndpointType:   pulumi.String("REGIONAL"),
-				SecurityPolicy: pulumi.String("TLS_1_2"),
-			},
-		},
+	apiDomainName := pulumi.Sprintf(
+		"%s.execute-api.%s.amazonaws.com",
+		api.ID(),
+		region.Name,
 	)
-	if err != nil {
-		return err
-	}
 
-	_, err = apigatewayv2.NewApiMapping(
-		ctx,
-		awsNamePrintf(ctx, "%s", "site"),
-		&apigatewayv2.ApiMappingArgs{
-			ApiId:      api.ID(),
-			DomainName: pulumi.String("photo.mattcanty.com"),
-			Stage:      stage.ID(),
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return apiDomainName, stage.Name, nil
 }

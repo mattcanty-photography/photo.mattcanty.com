@@ -11,12 +11,22 @@ import (
 
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
-		photosBucketName, err := createPhotosResources(ctx)
+		photosBucket, err := createPhotosResources(ctx)
 		if err != nil {
 			return err
 		}
 
-		err = createSiteResources(ctx, photosBucketName)
+		apiGatewayDomainName, apiGatewayStageName, err := createSiteResources(ctx, photosBucket.Bucket)
+		if err != nil {
+			return err
+		}
+
+		err = createCDN(
+			ctx,
+			photosBucket.BucketRegionalDomainName,
+			apiGatewayDomainName,
+			apiGatewayStageName,
+		)
 		if err != nil {
 			return err
 		}
