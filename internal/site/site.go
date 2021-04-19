@@ -1,4 +1,4 @@
-package main
+package site
 
 import (
 	"encoding/json"
@@ -9,19 +9,21 @@ import (
 	"github.com/pulumi/pulumi-aws/sdk/v3/go/aws/iam"
 	"github.com/pulumi/pulumi-aws/sdk/v3/go/aws/lambda"
 	"github.com/pulumi/pulumi/sdk/v2/go/pulumi"
+
+	"github.com/matt.canty/photo.mattcanty.com/platform/internal/helpers"
 )
 
-func createSiteResources(
+func CreateSiteResources(
 	ctx *pulumi.Context,
 	bucketName pulumi.StringOutput) (pulumi.StringOutput, pulumi.StringOutput, error) {
-	var doc assumeRolePolicyDocument
+	var doc helpers.AssumeRolePolicyDocument
 	doc.Version = "2012-10-17"
-	doc.Statement = []assumeRolePolicyStatmentEntry{
+	doc.Statement = []helpers.AssumeRolePolicyStatmentEntry{
 		{
 			Sid:    "",
 			Effect: "Allow",
 			Action: "sts:AssumeRole",
-			Principal: assumeRolePolicyStatmentEntryPrincipal{
+			Principal: helpers.AssumeRolePolicyStatmentEntryPrincipal{
 				Service: "lambda.amazonaws.com",
 			},
 		},
@@ -34,7 +36,7 @@ func createSiteResources(
 
 	lambdaRole, err := iam.NewRole(
 		ctx,
-		awsNamePrintf(ctx, "%s", "site-lambda"),
+		helpers.AWSNamePrintf(ctx, "%s", "site-lambda"),
 		&iam.RoleArgs{
 			AssumeRolePolicy: pulumi.String(assumeRolePolicy),
 		},
@@ -44,7 +46,7 @@ func createSiteResources(
 	}
 
 	policyTmp := bucketName.ApplyString(func(bucketID string) (string, error) {
-		policyStatement := []policyStatementEntry{
+		policyStatement := []helpers.PolicyStatementEntry{
 			{
 				Effect: "Allow",
 				Action: []string{
@@ -83,7 +85,7 @@ func createSiteResources(
 			},
 		}
 
-		policyFormat, policyArgs, err := newPolicyDocumentString(policyStatement...)
+		policyFormat, policyArgs, err := helpers.NewPolicyDocumentString(policyStatement...)
 		if err != nil {
 			return "", err
 		}
@@ -93,7 +95,7 @@ func createSiteResources(
 
 	lambdaRolePolicy, err := iam.NewRolePolicy(
 		ctx,
-		awsNamePrintf(ctx, "%s", "site-lambda"),
+		helpers.AWSNamePrintf(ctx, "%s", "site-lambda"),
 		&iam.RolePolicyArgs{
 			Role:   lambdaRole.Name,
 			Policy: policyTmp,
@@ -113,7 +115,7 @@ func createSiteResources(
 
 	function, err := lambda.NewFunction(
 		ctx,
-		awsNamePrintf(ctx, "%s", "site"),
+		helpers.AWSNamePrintf(ctx, "%s", "site"),
 		&lambda.FunctionArgs{
 			Handler: pulumi.String("handler"),
 			Role:    lambdaRole.Arn,
@@ -137,7 +139,7 @@ func createSiteResources(
 
 	api, err := apigatewayv2.NewApi(
 		ctx,
-		awsNamePrintf(ctx, "%s", "site"),
+		helpers.AWSNamePrintf(ctx, "%s", "site"),
 		&apigatewayv2.ApiArgs{
 			ProtocolType: pulumi.String("HTTP"),
 		},
@@ -148,7 +150,7 @@ func createSiteResources(
 
 	integration, err := apigatewayv2.NewIntegration(
 		ctx,
-		awsNamePrintf(ctx, "%s", "site"),
+		helpers.AWSNamePrintf(ctx, "%s", "site"),
 		&apigatewayv2.IntegrationArgs{
 			ApiId:                api.ID(),
 			IntegrationType:      pulumi.String("AWS_PROXY"),
@@ -187,7 +189,7 @@ func createSiteResources(
 
 	_, err = lambda.NewPermission(
 		ctx,
-		awsNamePrintf(ctx, "%s", "site"),
+		helpers.AWSNamePrintf(ctx, "%s", "site"),
 		&lambda.PermissionArgs{
 			Action:    pulumi.String("lambda:InvokeFunction"),
 			Function:  function.Name,

@@ -1,4 +1,4 @@
-package main
+package photos
 
 import (
 	"encoding/json"
@@ -8,12 +8,14 @@ import (
 	"github.com/pulumi/pulumi-aws/sdk/v3/go/aws/lambda"
 	"github.com/pulumi/pulumi-aws/sdk/v3/go/aws/s3"
 	"github.com/pulumi/pulumi/sdk/v2/go/pulumi"
+
+	"github.com/matt.canty/photo.mattcanty.com/platform/internal/helpers"
 )
 
-func createPhotosResources(ctx *pulumi.Context) (s3.Bucket, error) {
+func CreatePhotosResources(ctx *pulumi.Context) (s3.Bucket, error) {
 	bucket, err := s3.NewBucket(
 		ctx,
-		awsNamePrintf(ctx, "%s", "photos"),
+		helpers.AWSNamePrintf(ctx, "%s", "photos"),
 		&s3.BucketArgs{})
 
 	tmpJSON := bucket.Arn.ApplyT(func(arn string) (string, error) {
@@ -41,21 +43,21 @@ func createPhotosResources(ctx *pulumi.Context) (s3.Bucket, error) {
 
 	s3.NewBucketPolicy(
 		ctx,
-		awsNamePrintf(ctx, "%s", "photos"),
+		helpers.AWSNamePrintf(ctx, "%s", "photos"),
 		&s3.BucketPolicyArgs{
 			Bucket: bucket.ID(),
 			Policy: tmpJSON,
 		},
 	)
 
-	var doc assumeRolePolicyDocument
+	var doc helpers.AssumeRolePolicyDocument
 	doc.Version = "2012-10-17"
-	doc.Statement = []assumeRolePolicyStatmentEntry{
+	doc.Statement = []helpers.AssumeRolePolicyStatmentEntry{
 		{
 			Sid:    "",
 			Effect: "Allow",
 			Action: "sts:AssumeRole",
-			Principal: assumeRolePolicyStatmentEntryPrincipal{
+			Principal: helpers.AssumeRolePolicyStatmentEntryPrincipal{
 				Service: "lambda.amazonaws.com",
 			},
 		},
@@ -68,7 +70,7 @@ func createPhotosResources(ctx *pulumi.Context) (s3.Bucket, error) {
 
 	lambdaRole, err := iam.NewRole(
 		ctx,
-		awsNamePrintf(ctx, "%s", "photosapi-lambda"),
+		helpers.AWSNamePrintf(ctx, "%s", "photosapi-lambda"),
 		&iam.RoleArgs{
 			AssumeRolePolicy: pulumi.String(assumeRolePolicy),
 		},
@@ -78,7 +80,7 @@ func createPhotosResources(ctx *pulumi.Context) (s3.Bucket, error) {
 	}
 
 	policyTmp := bucket.Bucket.ApplyString(func(bucketID string) (string, error) {
-		policyStatement := []policyStatementEntry{
+		policyStatement := []helpers.PolicyStatementEntry{
 			{
 				Effect: "Allow",
 				Action: []string{
@@ -117,7 +119,7 @@ func createPhotosResources(ctx *pulumi.Context) (s3.Bucket, error) {
 			},
 		}
 
-		policyFormat, policyArgs, err := newPolicyDocumentString(policyStatement...)
+		policyFormat, policyArgs, err := helpers.NewPolicyDocumentString(policyStatement...)
 		if err != nil {
 			return "", err
 		}
@@ -127,7 +129,7 @@ func createPhotosResources(ctx *pulumi.Context) (s3.Bucket, error) {
 
 	lambdaRolePolicy, err := iam.NewRolePolicy(
 		ctx,
-		awsNamePrintf(ctx, "%s", "photosapi-lambda"),
+		helpers.AWSNamePrintf(ctx, "%s", "photosapi-lambda"),
 		&iam.RolePolicyArgs{
 			Role:   lambdaRole.Name,
 			Policy: policyTmp,
@@ -147,7 +149,7 @@ func createPhotosResources(ctx *pulumi.Context) (s3.Bucket, error) {
 
 	_, err = lambda.NewFunction(
 		ctx,
-		awsNamePrintf(ctx, "%s", "photosapi"),
+		helpers.AWSNamePrintf(ctx, "%s", "photosapi"),
 		&lambda.FunctionArgs{
 			Handler: pulumi.String("handler"),
 			Role:    lambdaRole.Arn,

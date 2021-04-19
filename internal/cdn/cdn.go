@@ -1,12 +1,13 @@
-package main
+package cdn
 
 import (
+	"github.com/matt.canty/photo.mattcanty.com/platform/internal/helpers"
 	"github.com/pulumi/pulumi-aws/sdk/v3/go/aws"
 	"github.com/pulumi/pulumi-aws/sdk/v3/go/aws/cloudfront"
 	"github.com/pulumi/pulumi/sdk/v2/go/pulumi"
 )
 
-func createCDN(
+func CreateCDN(
 	ctx *pulumi.Context,
 	photosBucketDomainName pulumi.StringOutput,
 	apiGatewayDomainName pulumi.StringOutput,
@@ -19,7 +20,7 @@ func createCDN(
 
 	_, err = cloudfront.NewDistribution(
 		ctx,
-		awsNamePrintf(ctx, "%s", "default"),
+		helpers.AWSNamePrintf(ctx, "%s", "default"),
 		&cloudfront.DistributionArgs{
 			Origins: cloudfront.DistributionOriginArray{
 				&cloudfront.DistributionOriginArgs{

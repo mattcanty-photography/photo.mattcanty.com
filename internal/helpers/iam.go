@@ -1,41 +1,41 @@
-package main
+package helpers
 
 import "encoding/json"
 
-type assumeRolePolicyDocument struct {
+type AssumeRolePolicyDocument struct {
 	Version   string
-	Statement []assumeRolePolicyStatmentEntry
+	Statement []AssumeRolePolicyStatmentEntry
 }
 
-type assumeRolePolicyStatmentEntry struct {
+type AssumeRolePolicyStatmentEntry struct {
 	Sid       string
 	Effect    string
-	Principal assumeRolePolicyStatmentEntryPrincipal
+	Principal AssumeRolePolicyStatmentEntryPrincipal
 	Action    string
 }
 
-type assumeRolePolicyStatmentEntryPrincipal struct {
+type AssumeRolePolicyStatmentEntryPrincipal struct {
 	Service string
 }
 
-type policyDocument struct {
+type PolicyDocument struct {
 	Version   string
-	Statement []policyStatementEntry
+	Statement []PolicyStatementEntry
 }
 
-type policyStatementEntry struct {
+type PolicyStatementEntry struct {
 	Effect       string
 	Action       []string
 	Resource     []string
 	resourceArgs []interface{}
 }
 
-func newPolicyDocumentString(statementEntries ...policyStatementEntry) (string, []interface{}, error) {
+func NewPolicyDocumentString(statementEntries ...PolicyStatementEntry) (string, []interface{}, error) {
 	var args []interface{}
 	for _, statement := range statementEntries {
 		args = append(args, statement.resourceArgs...)
 	}
-	var doc policyDocument
+	var doc PolicyDocument
 	doc.Version = "2012-10-17"
 	doc.Statement = statementEntries
 
