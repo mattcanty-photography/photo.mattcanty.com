@@ -2,6 +2,8 @@ package cdn
 
 import (
 	"github.com/matt.canty/photo.mattcanty.com/platform/internal/helpers"
+	"github.com/matt.canty/photo.mattcanty.com/platform/internal/photos"
+	"github.com/matt.canty/photo.mattcanty.com/platform/internal/site"
 	"github.com/pulumi/pulumi-aws/sdk/v3/go/aws"
 	"github.com/pulumi/pulumi-aws/sdk/v3/go/aws/cloudfront"
 	"github.com/pulumi/pulumi/sdk/v2/go/pulumi"
@@ -9,9 +11,8 @@ import (
 
 func CreateCDN(
 	ctx *pulumi.Context,
-	photosBucketDomainName pulumi.StringOutput,
-	apiGatewayDomainName pulumi.StringOutput,
-	apiGatewayStageName pulumi.StringOutput,
+	photosResult photos.PhotosResult,
+	siteResult site.SiteResult,
 ) error {
 	current, err := aws.GetCallerIdentity(ctx, nil, nil)
 	if err != nil {
@@ -25,12 +26,12 @@ func CreateCDN(
 			Origins: cloudfront.DistributionOriginArray{
 				&cloudfront.DistributionOriginArgs{
 					OriginId:   pulumi.String("photos"),
-					DomainName: photosBucketDomainName,
+					DomainName: photosResult.Bucket.BucketRegionalDomainName,
 				},
 				cloudfront.DistributionOriginArgs{
 					OriginId:   pulumi.String("www"),
-					DomainName: apiGatewayDomainName,
-					OriginPath: pulumi.Sprintf("/%s", apiGatewayStageName),
+					DomainName: siteResult.DomainName,
+					OriginPath: pulumi.Sprintf("/%s", siteResult.StageName),
 					CustomOriginConfig: cloudfront.DistributionOriginCustomOriginConfigArgs{
 						HttpPort:  pulumi.Int(80),
 						HttpsPort: pulumi.Int(443),
@@ -82,6 +83,29 @@ func CreateCDN(
 						pulumi.String("HEAD"),
 					},
 					ForwardedValues: cloudfront.DistributionOrderedCacheBehaviorForwardedValuesArgs{
+						QueryString: pulumi.Bool(false),
+						Cookies: &cloudfront.DistributionOrderedCacheBehaviorForwardedValuesCookiesArgs{
+							Forward: pulumi.String("none"),
+						},
+					},
+					ViewerProtocolPolicy: pulumi.String("redirect-to-https"),
+					MinTtl:               pulumi.Int(3600),
+					DefaultTtl:           pulumi.Int(86400),
+					MaxTtl:               pulumi.Int(86400),
+				},
+				cloudfront.DistributionOrderedCacheBehaviorArgs{
+					TargetOriginId: pulumi.String("www"),
+					PathPattern:    pulumi.String("/photo/*"),
+					AllowedMethods: pulumi.StringArray{
+						pulumi.String("GET"),
+						pulumi.String("HEAD"),
+						pulumi.String("OPTIONS"),
+					},
+					CachedMethods: pulumi.StringArray{
+						pulumi.String("GET"),
+						pulumi.String("HEAD"),
+					},
+					ForwardedValues: &cloudfront.DistributionOrderedCacheBehaviorForwardedValuesArgs{
 						QueryString: pulumi.Bool(false),
 						Cookies: &cloudfront.DistributionOrderedCacheBehaviorForwardedValuesCookiesArgs{
 							Forward: pulumi.String("none"),

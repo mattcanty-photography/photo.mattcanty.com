@@ -6,16 +6,23 @@ import (
 
 	"github.com/pulumi/pulumi-aws/sdk/v3/go/aws"
 	"github.com/pulumi/pulumi-aws/sdk/v3/go/aws/apigatewayv2"
+	"github.com/pulumi/pulumi-aws/sdk/v3/go/aws/cloudwatch"
 	"github.com/pulumi/pulumi-aws/sdk/v3/go/aws/iam"
 	"github.com/pulumi/pulumi-aws/sdk/v3/go/aws/lambda"
 	"github.com/pulumi/pulumi/sdk/v2/go/pulumi"
 
 	"github.com/matt.canty/photo.mattcanty.com/platform/internal/helpers"
+	"github.com/matt.canty/photo.mattcanty.com/platform/internal/photos"
 )
+
+type SiteResult struct {
+	DomainName pulumi.StringOutput
+	StageName  pulumi.StringOutput
+}
 
 func CreateSiteResources(
 	ctx *pulumi.Context,
-	bucketName pulumi.StringOutput) (pulumi.StringOutput, pulumi.StringOutput, error) {
+	photosResult photos.PhotosResult) (SiteResult, error) {
 	var doc helpers.AssumeRolePolicyDocument
 	doc.Version = "2012-10-17"
 	doc.Statement = []helpers.AssumeRolePolicyStatmentEntry{
@@ -31,7 +38,7 @@ func CreateSiteResources(
 
 	assumeRolePolicy, err := json.Marshal(&doc)
 	if err != nil {
-		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
+		return SiteResult{}, err
 	}
 
 	lambdaRole, err := iam.NewRole(
@@ -42,10 +49,10 @@ func CreateSiteResources(
 		},
 	)
 	if err != nil {
-		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
+		return SiteResult{}, err
 	}
 
-	policyTmp := bucketName.ApplyString(func(bucketID string) (string, error) {
+	policyTmp := photosResult.Bucket.Bucket.ApplyString(func(bucketID string) (string, error) {
 		policyStatement := []helpers.PolicyStatementEntry{
 			{
 				Effect: "Allow",
@@ -102,10 +109,10 @@ func CreateSiteResources(
 		},
 	)
 	if err != nil {
-		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
+		return SiteResult{}, err
 	}
 
-	websiteVersion := "v0.0.7"
+	websiteVersion := "v0.0.8-beta.rc1"
 
 	remoteArchive := fmt.Sprintf(
 		"https://github.com/mattcanty-photography/website/releases/download/%s/website_%s_linux_amd64.zip",
@@ -127,14 +134,14 @@ func CreateSiteResources(
 			Timeout: pulumi.Int(10),
 			Environment: lambda.FunctionEnvironmentArgs{
 				Variables: pulumi.StringMap{
-					"PHOTO_BUCKET_NAME": bucketName,
+					"PHOTO_BUCKET_NAME": photosResult.Bucket.Bucket,
 				},
 			},
 		},
 		pulumi.DependsOn([]pulumi.Resource{lambdaRolePolicy}),
 	)
 	if err != nil {
-		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
+		return SiteResult{}, err
 	}
 
 	api, err := apigatewayv2.NewApi(
@@ -145,10 +152,10 @@ func CreateSiteResources(
 		},
 	)
 	if err != nil {
-		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
+		return SiteResult{}, err
 	}
 
-	integration, err := apigatewayv2.NewIntegration(
+	defaultIntegration, err := apigatewayv2.NewIntegration(
 		ctx,
 		helpers.AWSNamePrintf(ctx, "%s", "site"),
 		&apigatewayv2.IntegrationArgs{
@@ -161,7 +168,7 @@ func CreateSiteResources(
 		},
 	)
 	if err != nil {
-		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
+		return SiteResult{}, err
 	}
 
 	defaultRoute, err := apigatewayv2.NewRoute(
@@ -170,21 +177,50 @@ func CreateSiteResources(
 		&apigatewayv2.RouteArgs{
 			ApiId:    api.ID(),
 			RouteKey: pulumi.String("$default"),
-			Target:   pulumi.Sprintf("integrations/%s", integration.ID()),
+			Target:   pulumi.Sprintf("integrations/%s", defaultIntegration.ID()),
 		},
 	)
 	if err != nil {
-		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
+		return SiteResult{}, err
+	}
+
+	photosIntegration, err := apigatewayv2.NewIntegration(
+		ctx,
+		helpers.AWSNamePrintf(ctx, "%s", "photos"),
+		&apigatewayv2.IntegrationArgs{
+			ApiId:                api.ID(),
+			IntegrationType:      pulumi.String("AWS_PROXY"),
+			ConnectionType:       pulumi.String("INTERNET"),
+			IntegrationMethod:    pulumi.String("POST"),
+			IntegrationUri:       photosResult.S3Function.InvokeArn,
+			PayloadFormatVersion: pulumi.String("2.0"),
+		},
+	)
+	if err != nil {
+		return SiteResult{}, err
+	}
+
+	_, err = apigatewayv2.NewRoute(
+		ctx,
+		"photos",
+		&apigatewayv2.RouteArgs{
+			ApiId:    api.ID(),
+			RouteKey: pulumi.String("ANY /photo/{proxy+}"),
+			Target:   pulumi.Sprintf("integrations/%s", photosIntegration.ID()),
+		},
+	)
+	if err != nil {
+		return SiteResult{}, err
 	}
 
 	region, err := aws.GetRegion(ctx, nil, nil)
 	if err != nil {
-		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
+		return SiteResult{}, err
 	}
 
 	current, err := aws.GetCallerIdentity(ctx, nil, nil)
 	if err != nil {
-		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
+		return SiteResult{}, err
 	}
 
 	_, err = lambda.NewPermission(
@@ -203,15 +239,46 @@ func CreateSiteResources(
 			),
 		}, pulumi.DependsOn([]pulumi.Resource{api, function}))
 	if err != nil {
-		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
+		return SiteResult{}, err
+	}
+
+	_, err = lambda.NewPermission(
+		ctx,
+		helpers.AWSNamePrintf(ctx, "%s", "photos"),
+		&lambda.PermissionArgs{
+			Action:    pulumi.String("lambda:InvokeFunction"),
+			Function:  photosResult.S3Function.Name,
+			Principal: pulumi.String("apigateway.amazonaws.com"),
+			SourceArn: pulumi.Sprintf(
+				"arn:aws:execute-api:%s:%s:%s/*",
+				region.Name,
+				current.AccountId,
+				api.ID(),
+			),
+		}, pulumi.DependsOn([]pulumi.Resource{api, photosResult.S3Function}))
+	if err != nil {
+		return SiteResult{}, err
+	}
+
+	logGroup, err := cloudwatch.NewLogGroup(
+		ctx,
+		helpers.AWSNamePrintf(ctx, "%s", "site"),
+		&cloudwatch.LogGroupArgs{},
+	)
+	if err != nil {
+		return SiteResult{}, err
 	}
 
 	stage, err := apigatewayv2.NewStage(ctx, ctx.Stack(), &apigatewayv2.StageArgs{
 		ApiId:      api.ID(),
 		AutoDeploy: pulumi.Bool(true),
+		AccessLogSettings: apigatewayv2.StageAccessLogSettingsArgs{
+			Format:         pulumi.String("$context.identity.sourceIp - - [$context.requestTime] \"$context.httpMethod $context.routeKey $context.protocol\" $context.status $context.responseLength $context.requestId $context.integrationErrorMessage"),
+			DestinationArn: pulumi.Sprintf("arn:aws:logs:%s:%s:log-group:%s:*", region.Name, current.AccountId, logGroup.Name),
+		},
 	})
 	if err != nil {
-		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
+		return SiteResult{}, err
 	}
 
 	apiDomainName := pulumi.Sprintf(
@@ -220,5 +287,8 @@ func CreateSiteResources(
 		region.Name,
 	)
 
-	return apiDomainName, stage.Name, nil
+	return SiteResult{
+		DomainName: apiDomainName,
+		StageName:  stage.Name,
+	}, nil
 }

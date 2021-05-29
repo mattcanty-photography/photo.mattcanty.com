@@ -10,21 +10,20 @@ import (
 
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
-		photosBucket, err := photos.CreatePhotosResources(ctx)
+		photosResult, err := photos.CreatePhotosResources(ctx)
 		if err != nil {
 			return err
 		}
 
-		apiGatewayDomainName, apiGatewayStageName, err := site.CreateSiteResources(ctx, photosBucket.Bucket)
+		siteResult, err := site.CreateSiteResources(ctx, photosResult)
 		if err != nil {
 			return err
 		}
 
 		err = cdn.CreateCDN(
 			ctx,
-			photosBucket.BucketRegionalDomainName,
-			apiGatewayDomainName,
-			apiGatewayStageName,
+			photosResult,
+			siteResult,
 		)
 		if err != nil {
 			return err

@@ -12,7 +12,12 @@ import (
 	"github.com/matt.canty/photo.mattcanty.com/platform/internal/helpers"
 )
 
-func CreatePhotosResources(ctx *pulumi.Context) (s3.Bucket, error) {
+type PhotosResult struct {
+	Bucket     *s3.Bucket
+	S3Function *lambda.Function
+}
+
+func CreatePhotosResources(ctx *pulumi.Context) (PhotosResult, error) {
 	bucket, err := s3.NewBucket(
 		ctx,
 		helpers.AWSNamePrintf(ctx, "%s", "photos"),
@@ -38,7 +43,7 @@ func CreatePhotosResources(ctx *pulumi.Context) (s3.Bucket, error) {
 		return string(policyJSON), nil
 	})
 	if err != nil {
-		return s3.Bucket{}, err
+		return PhotosResult{}, err
 	}
 
 	s3.NewBucketPolicy(
@@ -65,7 +70,7 @@ func CreatePhotosResources(ctx *pulumi.Context) (s3.Bucket, error) {
 
 	assumeRolePolicy, err := json.Marshal(&doc)
 	if err != nil {
-		return s3.Bucket{}, err
+		return PhotosResult{}, err
 	}
 
 	lambdaRole, err := iam.NewRole(
@@ -76,7 +81,7 @@ func CreatePhotosResources(ctx *pulumi.Context) (s3.Bucket, error) {
 		},
 	)
 	if err != nil {
-		return s3.Bucket{}, err
+		return PhotosResult{}, err
 	}
 
 	policyTmp := bucket.Bucket.ApplyString(func(bucketID string) (string, error) {
@@ -136,10 +141,10 @@ func CreatePhotosResources(ctx *pulumi.Context) (s3.Bucket, error) {
 		},
 	)
 	if err != nil {
-		return s3.Bucket{}, err
+		return PhotosResult{}, err
 	}
 
-	photosapiVersion := "v0.0.1-beta.rc1"
+	photosapiVersion := "v0.0.1-beta.rc4"
 
 	remoteArchive := fmt.Sprintf(
 		"https://github.com/mattcanty-photography/photosapi/releases/download/%s/photosapi_%s_linux_amd64.zip",
@@ -147,7 +152,7 @@ func CreatePhotosResources(ctx *pulumi.Context) (s3.Bucket, error) {
 		photosapiVersion,
 	)
 
-	_, err = lambda.NewFunction(
+	s3Function, err := lambda.NewFunction(
 		ctx,
 		helpers.AWSNamePrintf(ctx, "%s", "photosapi"),
 		&lambda.FunctionArgs{
@@ -158,7 +163,8 @@ func CreatePhotosResources(ctx *pulumi.Context) (s3.Bucket, error) {
 			TracingConfig: lambda.FunctionTracingConfigArgs{
 				Mode: pulumi.String("Active"),
 			},
-			Timeout: pulumi.Int(10),
+			Timeout:    pulumi.Int(60),
+			MemorySize: pulumi.Int(256),
 			Environment: lambda.FunctionEnvironmentArgs{
 				Variables: pulumi.StringMap{
 					"PHOTO_BUCKET_NAME": bucket.ID(),
@@ -168,8 +174,11 @@ func CreatePhotosResources(ctx *pulumi.Context) (s3.Bucket, error) {
 		pulumi.DependsOn([]pulumi.Resource{lambdaRolePolicy}),
 	)
 	if err != nil {
-		return s3.Bucket{}, err
+		return PhotosResult{}, err
 	}
 
-	return *bucket, err
+	return PhotosResult{
+		Bucket:     bucket,
+		S3Function: s3Function,
+	}, err
 }
